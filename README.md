@@ -55,7 +55,7 @@ Runs are saved as JSON under `runs/` unless `--no-save` is passed. Generated Com
 
 This is a real output from the included SDXL workflow. The loop generated the image, saved it with an AI-generated filename, and attached it to the vision critic:
 
-![Generated nostalgic Chinese courtyard](runs/comfy/iteration-1/empty-chinese-courtyard-dusk-nostalgia.png)
+![Generated nostalgic Chinese courtyard](docs/images/empty-chinese-courtyard-dusk-nostalgia.png)
 
 Prompt used:
 
@@ -65,7 +65,7 @@ The loop can generate multiple iterations. Later iterations are saved separately
 
 | Early iteration | Later iteration |
 | --- | --- |
-| ![Early generated image](runs/comfy/iteration-1/pastel-chinese-apartments-dusk-liminal.png) | ![Later generated image](runs/comfy/iteration-10/empty-chinese-courtyard-dusk-pastel.png) |
+| ![Early generated image](docs/images/empty-chinese-courtyard-dusk-nostalgia.png) | ![Later generated image](docs/images/empty-chinese-courtyard-dusk-pastel.png) |
 
 ## ComfyUI image generation
 
