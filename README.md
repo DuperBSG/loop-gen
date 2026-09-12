@@ -1,28 +1,21 @@
-# agent-loop
+# agent-loop 🤖
 
-Iterative **plan -> execute -> critique -> improve** loop for text and generated-image workflows. Each role is an LLM call. When ComfyUI is enabled, the loop generates an image locally, sends it to the vision-capable critic, and uses the critique to guide the next iteration.
+An iterative **plan → execute → critique → improve** loop for writing and local media generation.
 
-## Local setup
+```text
+goal → plan → execute → generate → critique → improve → repeat
+```
+
+## ✨ Quick start
 
 ```bash
 python -m venv .venv
+source .venv/bin/activate          # fish: source .venv/bin/activate.fish
 pip install -e .
 cp .env.example .env
 ```
 
-Activate the environment using the script for your shell:
-
-```bash
-# bash/zsh
-source .venv/bin/activate
-
-# fish
-source .venv/bin/activate.fish
-```
-
-### Provider configuration
-
-Native Anthropic:
+Set a provider in `.env`:
 
 ```env
 AGENT_LOOP_PROVIDER=anthropic
@@ -30,50 +23,31 @@ ANTHROPIC_API_KEY=your-key
 AGENT_LOOP_MODEL=claude-sonnet-4-5
 ```
 
-OpenAI-compatible providers, including OpenAI, OpenRouter, Azure, and local servers:
-
-```env
-AGENT_LOOP_PROVIDER=openai
-OPENAI_API_KEY=your-key
-OPENAI_BASE_URL=https://api.openai.com/v1
-AGENT_LOOP_MODEL=gpt-4o-mini
-```
-
-Do not commit `.env` or expose provider keys to users. If both keys are present, set `AGENT_LOOP_PROVIDER` explicitly.
-
-## Run the loop
+Then run:
 
 ```bash
 agent-loop "Write a one-page product brief for a note-taking app"
-agent-loop "Create a launch plan" -n 5 -m gpt-4o-mini
-agent-loop --dry-run -n 1   # no API calls
+agent-loop "Create a launch plan" -n 5
+agent-loop --dry-run -n 1
 ```
 
-Runs are saved as JSON under `runs/` unless `--no-save` is passed. Generated ComfyUI media is saved under `runs/comfy/`.
+🔒 Never commit `.env` or expose API keys.
 
-## Image generation demo
+## 🖼️ Image demo
 
-This is a real output from the included SDXL workflow. The loop generated the image, saved it with an AI-generated filename, and attached it to the vision critic:
+The included SDXL workflow generated these real outputs. The vision critic reviews each result and guides the next iteration:
 
-![Generated nostalgic Chinese courtyard](docs/images/empty-chinese-courtyard-dusk-nostalgia.png)
-
-Prompt used:
-
-> A nostalgic liminal Chinese residential courtyard at dusk, empty tiled plaza, faded pastel apartments, turquoise and pink fluorescent lights, soft VHS bloom, millennial dream atmosphere.
-
-The loop can generate multiple iterations. Later iterations are saved separately so you can compare how the critique and improvement steps affect the result:
-
-| Early iteration | Later iteration |
+| First attempt | Improved attempt |
 | --- | --- |
-| ![Early generated image](docs/images/empty-chinese-courtyard-dusk-nostalgia.png) | ![Later generated image](docs/images/empty-chinese-courtyard-dusk-pastel.png) |
+| ![First generated image](docs/images/empty-chinese-courtyard-dusk-nostalgia.png) | ![Improved generated image](docs/images/pastel-chinese-courtyard-dusk-liminal.png) |
 
-## ComfyUI image generation
+**Prompt:** _A nostalgic liminal Chinese residential courtyard at dusk, faded pastel apartments, turquoise and pink lights, soft VHS bloom, millennial dream atmosphere._
 
-The loop can submit a local ComfyUI workflow, download the generated image, ask the configured vision model to name it, and send the image back to the critic.
+Images are named automatically and saved under `runs/comfy/`.
 
-### Prepare ComfyUI
+## 🎨 Generate an image
 
-Install ComfyUI separately and start its local API server. For the current low-VRAM NVIDIA setup:
+Start ComfyUI:
 
 ```bash
 cd /home/bowei/ComfyUI
@@ -82,82 +56,39 @@ cd /home/bowei/ComfyUI
   --cpu-vae --preview-method none
 ```
 
-The UI is available at `http://127.0.0.1:8188`.
+In another terminal:
 
-### Configure a workflow
+```bash
+cd /home/bowei/agent-loop
+agent-loop "Create a cinematic product hero image" -n 2 \
+  --comfy-workflow ./comfy-workflow.json \
+  --comfy-prompt-node 6
+```
 
-1. Open an image workflow in ComfyUI.
-2. Choose **Save (API Format)**.
-3. Save the JSON as `comfy-workflow.json` in this project.
-4. Confirm the workflow's checkpoint and other models exist under ComfyUI's `models/` directories.
-5. Identify the text prompt node ID and input field in the exported JSON.
+The example uses SDXL at 768×768. A 6 GB GPU works best with batch size 1 and short runs.
 
-The example workflow in this repository uses:
+## 🎥 Generate a video
 
-- `sd_xl_base_1.0.safetensors`
-- 768x768 output
-- node `6` as the positive prompt input
-- one image per run
+The included LTX-2.3 workflow creates an MP4:
 
-On a 6 GB GPU, use `--lowvram`, batch size 1, modest resolution, and short step counts. SDXL is slower than SD 1.5 and may require CPU offload.
-
-### Video workflows
-
-The included [`ltx-video-workflow.json`](/home/bowei/agent-loop/ltx-video-workflow.json) is an API-format LTX-2.3 text-to-video workflow. It writes MP4 files under `runs/comfy/` and can be run with:
-
-```fish
-agent-loop "Create a short nostalgic liminal-space video" -n 1 \
-  --comfy-workflow ltx-video-workflow.json \
+```bash
+agent-loop "Create a short nostalgic liminal-space video with gentle camera movement" \
+  -n 1 \
+  --comfy-workflow ./ltx-video-workflow.json \
   --comfy-prompt-node 266 \
   --comfy-prompt-field value
 ```
 
-Video files are tracked as run artifacts. The current critic sends generated images to the vision model; MP4 files remain available locally for playback or later frame extraction.
+Videos are saved under `runs/comfy/`. The current vision critic reviews image outputs; MP4 files remain available locally.
 
-Run an image iteration:
+## 🧠 Providers
 
-```fish
-agent-loop "Create a cinematic product hero image" -n 2 \
-  --comfy-workflow /home/bowei/agent-loop/comfy-workflow.json \
-  --comfy-prompt-node 6
-```
+Native Anthropic is supported, along with OpenAI-compatible providers such as OpenAI, OpenRouter, Azure, and local servers. Configure the provider with `AGENT_LOOP_PROVIDER` and its API key in `.env`.
 
-If the prompt input is not called `text`:
+## 📁 Output locations
 
-```fish
-agent-loop "Create a cinematic product hero image" -n 2 \
-  --comfy-workflow comfy-workflow.json \
-  --comfy-prompt-node 6 \
-  --comfy-prompt-field prompt
-```
+- `runs/*.json` — loop history and critiques
+- `runs/comfy/` — generated images and videos
+- `docs/images/` — README demo images
 
-The image flow is:
-
-```text
-LLM planner -> LLM executor -> ComfyUI image render -> vision critique -> improvement
-```
-
-The critic receives the generated image as a vision input. The CLI reports the attached image filename, and the run JSON records artifact paths.
-
-## Recommended architecture for sharing this project
-
-For multiple users, do not expose local ComfyUI or provider API keys. Use a hosted service:
-
-```text
-Users -> Web UI -> Backend API -> LLM provider
-                         |
-                         -> GPU worker running ComfyUI
-```
-
-Recommended production pieces:
-
-- Web frontend: Next.js or another managed web UI
-- Backend: FastAPI or equivalent
-- LLM provider: Anthropic, OpenAI, OpenRouter, or a self-hosted endpoint behind a provider adapter
-- GPU worker: ComfyUI on a cloud GPU
-- Queue: Redis plus background workers for image jobs
-- Storage: S3-compatible object storage for generated images
-- Database: PostgreSQL for users, jobs, and run metadata
-- Auth and billing: managed authentication plus per-user quotas
-
-Keep provider credentials on the backend, enforce timeouts and usage limits, and queue GPU jobs instead of running them in web request handlers. The existing CLI/provider abstraction can serve as the core loop engine behind that API.
+For a multi-user deployment, keep provider keys and ComfyUI behind a backend, queue GPU jobs, and store outputs in object storage.
